@@ -13,6 +13,8 @@ Gebruik:
     python tenderned_gunningen.py --alles         # ook lage scores
     python tenderned_gunningen.py --demo          # testrun zonder internet
     python tenderned_gunningen.py --velden        # toon veldnamen van de API
+    python tenderned_gunningen.py --van 548 --tot 183 --xlsx exports/gunningen-historie.xlsx
+                                                  # historie: 1,5 jaar tot een half jaar terug
 
 Nodig:   pip install requests
 Optie:   pip install pypdf     (extra route om winnaars uit de PDF te halen)
@@ -32,6 +34,7 @@ import json
 import os
 import re
 import sys
+import time
 import xml.etree.ElementTree as ET
 
 try:
@@ -49,10 +52,12 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 DAGEN_TERUG = 90          # gunningen komen minder vaak voorbij dan aankondigingen
-MAX_PAGINAS = 120
+MAX_PAGINAS = 600
 PAGINA_GROOTTE = 100
 MIN_SCORE = 3             # minimale relevantiescore
 MAX_VERRIJKING = 150      # hoeveel gunningen per run maximaal uitgezocht worden
+MAX_POGINGEN = 3          # zo vaak opnieuw proberen als er geen winnaar gevonden is
+PAUZE = 0.3               # seconden tussen detailverzoeken, om TenderNed niet te belasten
 
 BASIS_URL = "https://www.tenderned.nl/papi/tenderned-rs-tns/v2/publicaties"
 PUBLICATIE_URL = "https://www.tenderned.nl/aankondigingen/overzicht/{id}"
@@ -158,12 +163,14 @@ def sessie():
     return SESSIE
 
 
-def haal_gunningen(dagen, toon_velden=False):
+def haal_gunningen(van_dagen, tot_dagen=0, toon_velden=False):
+    """Haalt gunningen op met publicatiedatum tussen van_dagen en tot_dagen geleden."""
     if requests is None:
         stop("De module 'requests' ontbreekt. Installeer met: pip install requests")
 
     vandaag = dt.date.today()
-    vanaf = vandaag - dt.timedelta(days=dagen)
+    vanaf = vandaag - dt.timedelta(days=van_dagen)
+    tot = vandaag - dt.timedelta(days=tot_dagen)
     alles, pagina = [], 0
 
     while pagina < MAX_PAGINAS:
@@ -172,7 +179,7 @@ def haal_gunningen(dagen, toon_velden=False):
             "size": PAGINA_GROOTTE,
             "publicatieType": "AGO",
             "publicatieDatumVanaf": vanaf.isoformat(),
-            "publicatieDatumTot": vandaag.isoformat(),
+            "publicatieDatumTot": tot.isoformat(),
         }
         try:
             r = sessie().get(BASIS_URL, params=params, timeout=45)
@@ -197,10 +204,28 @@ def haal_gunningen(dagen, toon_velden=False):
                     print("   %-38s %s" % (sleutel, str(waarde)[:70]))
                 sys.exit(0)
 
-        alles.extend(rijen)
-        print("  pagina %d: %d publicaties (totaal %d)" % (pagina, len(rijen), len(alles)))
+        # Datumfilter ook zelf toepassen: de API negeert soms de datumparameters.
+        binnen = []
+        oudste = None
+        for rij in rijen:
+            d = datum(kies(rij, "publicatieDatum", "datumPublicatie", "publicatiedatum"))
+            if d:
+                oudste = d if oudste is None or d < oudste else oudste
+            if not d or vanaf.isoformat() <= d <= tot.isoformat():
+                binnen.append(rij)
+        alles.extend(binnen)
+        print("  pagina %d: %d publicaties, %d binnen periode (totaal %d)"
+              % (pagina, len(rijen), len(binnen), len(alles)))
 
-        if data.get("last") is True or len(rijen) < PAGINA_GROOTTE:
+        # Stoppen op de echte laatste pagina. NIET op len(rijen) < PAGINA_GROOTTE:
+        # TenderNed geeft soms minder per pagina terug dan gevraagd.
+        if data.get("last") is True:
+            break
+        totaal_paginas = data.get("totalPages")
+        if isinstance(totaal_paginas, int) and pagina + 1 >= totaal_paginas:
+            break
+        # Lijst loopt van nieuw naar oud: verder bladeren heeft geen zin meer.
+        if oudste and oudste < vanaf.isoformat():
             break
         pagina += 1
 
@@ -306,6 +331,77 @@ def strip_ns(tag):
     return tag.split("}")[-1] if "}" in tag else tag
 
 
+def _kind(knoop, naam):
+    for k in knoop:
+        if strip_ns(k.tag) == naam:
+            return k
+    return None
+
+
+def _id(knoop):
+    for k in knoop.iter():
+        if strip_ns(k.tag) == "ID" and (k.text or "").strip():
+            return k.text.strip()
+    return ""
+
+
+def eforms_winnaars(wortel):
+    org_naam = {}
+    for knoop in wortel.iter():
+        if strip_ns(knoop.tag) == "Organization":
+            org_id, naam = "", ""
+            for k in knoop.iter():
+                t = strip_ns(k.tag)
+                if t == "PartyIdentification" and not org_id:
+                    org_id = _id(k)
+                if t == "PartyName" and not naam:
+                    for kk in k.iter():
+                        if strip_ns(kk.tag) == "Name" and (kk.text or "").strip():
+                            naam = kk.text.strip()
+            if org_id and naam:
+                org_naam[org_id] = naam
+    partij_orgs = {}
+    for knoop in wortel.iter():
+        if strip_ns(knoop.tag) == "TenderingParty":
+            tpa = ""
+            for k in knoop:
+                if strip_ns(k.tag) == "ID":
+                    tpa = (k.text or "").strip()
+            orgs = [_id(k) for k in knoop.iter() if strip_ns(k.tag) == "Tenderer"]
+            if tpa:
+                partij_orgs[tpa] = [o for o in orgs if o]
+    inschrijving_partij = {}
+    for knoop in wortel.iter():
+        if strip_ns(knoop.tag) == "LotTender":
+            ten, tpa = "", ""
+            for k in knoop:
+                tag = strip_ns(k.tag)
+                if tag == "ID":
+                    ten = (k.text or "").strip()
+                elif tag == "TenderingParty":
+                    tpa = _id(k)
+            if ten and tpa:
+                inschrijving_partij[ten] = tpa
+    winnende_ten = []
+    for knoop in wortel.iter():
+        if strip_ns(knoop.tag) == "LotResult":
+            code = ""
+            for k in knoop.iter():
+                if strip_ns(k.tag) == "TenderResultCode":
+                    code = (k.text or "").strip()
+            if code == "selec-w":
+                for k in knoop:
+                    if strip_ns(k.tag) == "LotTender":
+                        winnende_ten.append(_id(k))
+    namen = []
+    for ten in winnende_ten:
+        for org in partij_orgs.get(inschrijving_partij.get(ten, ""), []):
+            naam = org_naam.get(org)
+            if naam and naam not in namen:
+                namen.append(naam)
+    return namen
+
+
 def uit_xml(xml_tekst, buyer):
     """Haalt winnaar en waarde uit TED SF-XML of eForms-XML."""
     try:
@@ -327,7 +423,11 @@ def uit_xml(xml_tekst, buyer):
         if strip_ns(knoop.tag) in ("VAL_TOTAL", "VAL_ESTIMATED_TOTAL") and knoop.text:
             waarde = waarde or knoop.text.strip()
 
-    # Route B: eForms — organisaties opzoeken en de buyer eruit filteren
+    # Route B: eForms — winnaars via LotResult (selec-w) -> LotTender -> TenderingParty -> ORG
+    if not namen:
+        namen = eforms_winnaars(wortel)
+
+    # Route C: eForms — organisaties opzoeken en de buyer eruit filteren (grof)
     if not namen:
         organisaties = []
         for knoop in knopen:
@@ -356,47 +456,97 @@ def uit_xml(xml_tekst, buyer):
     return uniek[:4], waarde
 
 
-PDF_MARKERS = ("naam en adres van de contractant", "contractant", "opdrachtnemer",
-               "winnende inschrijver", "winnaar", "gegund aan", "de ondernemer")
-PDF_NAAM = re.compile(r"(?:offici[eë]le\s+(?:benaming|naam)|naam\s+van\s+de\s+ondernemer|"
-                      r"naam)\s*:?\s*(.{3,120})", re.IGNORECASE)
+def _schoon(regel):
+    return re.sub(r"\s+", " ", (regel or "")).strip(" :;-")
+
+
+def _veld(tekst_pdf, label_regex, maxlen=600):
+    """Waarde na een label, tot het volgende label of de volgende kop."""
+    m = re.search(label_regex + r"\s*:?\s*(.+?)(?=\n\S[^\n]{0,60}:\s|\n\d+(?:\.\d+)+\s"
+                  r"|\n[IVX]+\.\d[\d.]*\)|\n(?:Identificatiecode|Interne|Eerdere|Type procedure"
+                  r"|Aard van|Rechtsgrondslag|Belangrijkste)|\Z)",
+                  tekst_pdf, re.IGNORECASE | re.DOTALL)
+    return _schoon(m.group(1))[:maxlen] if m else ""
+
+
+def lees_pdf_tekst(volledig, buyer=""):
+    """Haalt winnaar(s), koper, titel, beschrijving en waarde uit de tekst van een
+    TenderNed-publicatie. Werkt voor eForms (vanaf eind 2023) en de oude
+    standaardformulieren."""
+    info = {"winnaars": [], "koper": "", "titel": "", "beschrijving": "", "waarde": ""}
+    if not volledig:
+        return info
+    t = volledig.replace("\r", "")
+    namen = []
+
+    # eForms, deel 6: "Winnaar:" gevolgd door "Officiële naam: X"
+    for m in re.finditer(r"Winnaar\s*:\s*\n?\s*Offici[eë]le\s+naam\s*:?\s*([^\n]+)", t,
+                         re.IGNORECASE):
+        namen.append(_schoon(m.group(1)))
+
+    # eForms, deel 8: organisaties met rol "Winnaar van deze percelen"
+    if not namen:
+        for blok in re.split(r"\n\s*8\.1\s+ORG-\d+", t):
+            if re.search(r"Winnaar\s+van\s+de(?:ze)?", blok, re.IGNORECASE):
+                m = re.search(r"Offici[eë]le\s+naam\s*:?\s*([^\n]+)", blok, re.IGNORECASE)
+                if m:
+                    namen.append(_schoon(m.group(1)))
+
+    # Oude formulieren: "Naam en adres van de contractant" /
+    # "Naam en adres van de ondernemer aan wie de opdracht is gegund"
+    if not namen:
+        for m in re.finditer(r"(naam\s+en\s+adres\s+van\s+de\s+(?:contractant|ondernemer"
+                             r"\s+aan\s+wie\s+de\s+opdracht\s+is\s+gegund))", t, re.IGNORECASE):
+            staart = t[m.end():m.end() + 600]
+            n = re.search(r"Offici[eë]le\s+benaming\s*:?\s*\n?\s*([^\n]+)", staart, re.IGNORECASE)
+            if n:
+                namen.append(_schoon(n.group(1)))
+
+    schoon_buyer = normaliseer_naam(buyer)
+    for naam in namen:
+        if len(naam) > 2 and naam not in info["winnaars"] and \
+                (not schoon_buyer or normaliseer_naam(naam) != schoon_buyer):
+            info["winnaars"].append(naam)
+    info["winnaars"] = info["winnaars"][:6]
+
+    # Koper / opdrachtgever
+    m = re.search(r"1\.1\s+Koper.*?Offici[eë]le\s+naam\s*:?\s*([^\n]+)", t,
+                  re.IGNORECASE | re.DOTALL)
+    if not m:
+        m = re.search(r"Offici[eë]le\s+benaming\s*:?\s*\n?\s*([^\n]+)", t, re.IGNORECASE)
+    if m:
+        info["koper"] = _schoon(m.group(1))
+
+    # Titel en beschrijving
+    m = re.search(r"2\.1\s+Procedure\s*\n(.*?)(?=\n2\.1\.1\s|\Z)", t, re.DOTALL)
+    if m:
+        blok = m.group(1)
+        info["titel"] = _veld(blok, r"Titel", 250)
+        info["beschrijving"] = _veld(blok, r"Beschrijving", 900)
+    if not info["titel"]:
+        info["titel"] = _veld(t, r"II\.1\.1\)\s*(?:Benaming|Aan de opdracht gegeven benaming)", 250)
+    if not info["beschrijving"]:
+        info["beschrijving"] = _veld(t, r"II\.1\.4\)\s*Korte\s+beschrijving", 900)
+
+    # Waarde
+    m = re.search(r"Waarde\s+van\s+alle.*?gegunde\s+opdrachten\s*:?\s*([\d .,]+\s*[A-Z]{3})",
+                  t, re.IGNORECASE | re.DOTALL)
+    if not m:
+        m = re.search(r"Totale\s+waarde\s+van\s+de\s+opdracht[^:]*:\s*([\d .,]+)", t, re.IGNORECASE)
+    if m:
+        info["waarde"] = _schoon(m.group(1))
+    return info
 
 
 def uit_pdf(pdf_bytes, buyer):
     if PdfReader is None:
-        return [], ""
+        return {"winnaars": []}
     try:
         lezer = PdfReader(io.BytesIO(pdf_bytes))
-        volledig = "\n".join((p.extract_text() or "") for p in lezer.pages[:12])
+        volledig = "\n".join((p.extract_text() or "") for p in lezer.pages[:20])
     except Exception:
-        return [], ""
-
-    laag = volledig.lower()
-    start = -1
-    for marker in PDF_MARKERS:
-        positie = laag.find(marker)
-        if positie != -1:
-            start = positie
-            break
-    if start == -1:
-        return [], ""
-
-    staart = volledig[start:start + 2500]
-    namen = []
-    for treffer in PDF_NAAM.finditer(staart):
-        kandidaat = treffer.group(1).strip().strip(":;-").strip()
-        kandidaat = re.split(r"\s{3,}|\|", kandidaat)[0].strip()
-        if (len(kandidaat) > 3 and normaliseer_naam(kandidaat) != normaliseer_naam(buyer)
-                and kandidaat not in namen):
-            namen.append(kandidaat)
-        if len(namen) >= 3:
-            break
-
-    waarde = ""
-    bedrag = re.search(r"(?:waarde|bedrag)[^\d]{0,40}([\d.,]{4,})", staart, re.IGNORECASE)
-    if bedrag:
-        waarde = bedrag.group(1)
-    return namen, waarde
+        return {"winnaars": []}
+    return lees_pdf_tekst(volledig, buyer)
 
 
 def normaliseer_naam(naam):
@@ -405,61 +555,93 @@ def normaliseer_naam(naam):
     return re.sub(r"[^a-z0-9]+", "", schoon)
 
 
+STATS = {}
+
+
+def _tel(sleutel):
+    STATS[sleutel] = STATS.get(sleutel, 0) + 1
+
+
+def _pas_toe(pub, opgeslagen):
+    pub["winnaars"] = opgeslagen.get("winnaars", [])
+    pub["bron"] = opgeslagen.get("bron", "")
+    pub["waarde"] = opgeslagen.get("waarde", "") or pub.get("waarde", "")
+    for veld, doel in (("omschrijving", "omschrijving"), ("koper", "dienst"), ("titel", "titel")):
+        if opgeslagen.get(veld) and (not pub.get(doel) or doel == "omschrijving"
+                                     or pub.get(doel) == "Zonder titel"):
+            pub[doel] = opgeslagen[veld]
+
+
 def verrijk(pub, cache, gebruikersnaam, wachtwoord):
-    """Vult winnaars/waarde aan. Gebruikt de cache zodat elke run snel blijft."""
-    if pub["id"] in cache:
-        opgeslagen = cache[pub["id"]]
-        pub["winnaars"] = opgeslagen.get("winnaars", [])
-        pub["bron"] = opgeslagen.get("bron", "")
-        pub["waarde"] = opgeslagen.get("waarde", "")
+    """Vult winnaars, waarde en omschrijving aan. Gevonden resultaten worden
+    gecachet; lege resultaten worden maximaal MAX_POGINGEN keer opnieuw geprobeerd."""
+    opgeslagen = cache.get(pub["id"])
+    if opgeslagen and (opgeslagen.get("winnaars")
+                       or opgeslagen.get("pogingen", 0) >= MAX_POGINGEN):
+        _pas_toe(pub, opgeslagen)
         return False
 
     basis = "%s/%s" % (BASIS_URL, pub["id"])
-    namen, waarde, bron = [], "", ""
+    info, bron = {"winnaars": []}, ""
 
-    # Route 1 — detail-JSON, openbaar
-    try:
-        r = sessie().get(basis, timeout=30)
-        if r.ok:
-            detail = r.json()
-            kandidaten = [n for n in zoek_diep(detail, WINNAAR_SLEUTELS)
-                          if normaliseer_naam(n) != normaliseer_naam(pub["dienst"])]
-            if kandidaten:
-                namen, bron = kandidaten[:3], "detail"
-            if not pub["omschrijving"]:
-                pub["omschrijving"] = tekst(kies(detail, "opdrachtBeschrijving",
-                                                 "beschrijving"))[:600]
-    except Exception:
-        pass
+    # Route 1 — de openbare PDF van de publicatie (bewezen formaat, eForms en oud)
+    if PdfReader is not None:
+        try:
+            r = sessie().get(basis + "/pdf", timeout=60)
+            _tel("pdf http %s" % r.status_code)
+            if r.ok and r.content[:4] == b"%PDF":
+                info = uit_pdf(r.content, pub["dienst"])
+                if info.get("winnaars"):
+                    bron = "PDF"
+                else:
+                    _tel("pdf zonder winnaar")
+        except Exception as fout:
+            _tel("pdf fout %s" % type(fout).__name__)
 
     # Route 2 — eForms/TED XML
-    if not namen:
+    if not info.get("winnaars"):
         try:
             auth = (gebruikersnaam, wachtwoord) if gebruikersnaam else None
             r = sessie().get(basis + "/public-xml", auth=auth, timeout=40)
+            _tel("xml http %s" % r.status_code)
             if r.ok and r.text.strip().startswith("<"):
                 namen, waarde = uit_xml(r.text, pub["dienst"])
                 if namen:
-                    bron = "XML"
-        except Exception:
-            pass
+                    info["winnaars"], bron = namen, "XML"
+                    info["waarde"] = info.get("waarde") or waarde
+        except Exception as fout:
+            _tel("xml fout %s" % type(fout).__name__)
 
-    # Route 3 — de openbare PDF van de aankondiging
-    if not namen and PdfReader is not None:
+    # Route 3 — detail-JSON
+    if not info.get("winnaars") or not (info.get("beschrijving") or pub["omschrijving"]):
         try:
-            r = sessie().get(basis + "/pdf", timeout=60)
-            if r.ok and r.content[:4] == b"%PDF":
-                namen, pdf_waarde = uit_pdf(r.content, pub["dienst"])
-                waarde = waarde or pdf_waarde
-                if namen:
-                    bron = "PDF"
-        except Exception:
-            pass
+            r = sessie().get(basis, timeout=30)
+            _tel("json http %s" % r.status_code)
+            if r.ok:
+                detail = r.json()
+                if not info.get("winnaars"):
+                    kandidaten = [n for n in zoek_diep(detail, WINNAAR_SLEUTELS)
+                                  if not n.isdigit()
+                                  and normaliseer_naam(n) != normaliseer_naam(pub["dienst"])]
+                    if kandidaten:
+                        info["winnaars"], bron = kandidaten[:3], "detail"
+                if not info.get("beschrijving"):
+                    info["beschrijving"] = tekst(kies(detail, "opdrachtBeschrijving",
+                                                      "beschrijving"))[:900]
+        except Exception as fout:
+            _tel("json fout %s" % type(fout).__name__)
 
-    pub["winnaars"] = namen
-    pub["bron"] = bron
-    pub["waarde"] = waarde
-    cache[pub["id"]] = {"winnaars": namen, "bron": bron, "waarde": waarde}
+    time.sleep(PAUZE)
+    _tel("met winnaar" if info.get("winnaars") else "zonder winnaar")
+
+    vorige = (opgeslagen or {}).get("pogingen", 0)
+    nieuw = {"winnaars": info.get("winnaars", []), "bron": bron,
+             "waarde": info.get("waarde", ""),
+             "omschrijving": info.get("beschrijving", ""),
+             "koper": info.get("koper", ""), "titel": info.get("titel", ""),
+             "pogingen": vorige + 1}
+    cache[pub["id"]] = nieuw
+    _pas_toe(pub, nieuw)
     return True
 
 
@@ -787,6 +969,79 @@ def schrijf_csv(publicaties):
     return CSV_UIT
 
 
+def schrijf_xlsx(publicaties, pad, van_dagen, tot_dagen):
+    """Eén regel per gunning: project, inhoud, opdrachtgever, gegund aan."""
+    map_ = os.path.dirname(pad)
+    if map_:
+        os.makedirs(map_, exist_ok=True)
+    kop = ["Projectnaam", "Wat houdt het project in", "Opdrachtgever", "Gegund aan",
+           "Soort partij", "Publicatiedatum", "Waarde", "Segment", "Score", "Link TenderNed"]
+    rijen = []
+    for pub in sorted(publicaties, key=lambda p: (p["publicatie"], p["score"]), reverse=True):
+        winnaars = pub["winnaars"]
+        rijen.append([pub["titel"], pub["omschrijving"], pub["dienst"],
+                      "; ".join(winnaars) if winnaars else "niet gevonden, zie link",
+                      " / ".join(sorted({soort_partij(n) for n in winnaars})) if winnaars else "",
+                      pub["publicatie"], pub["waarde"], "/".join(pub["segmenten"]),
+                      pub["score"], pub["link"]])
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Alignment, Font, PatternFill
+    except ImportError:
+        import csv
+        pad = os.path.splitext(pad)[0] + ".csv"
+        with open(pad, "w", encoding="utf-8-sig", newline="") as f:
+            w = csv.writer(f, delimiter=";")
+            w.writerow(kop)
+            w.writerows(rijen)
+        return pad
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Gunningen"
+    ws.append(kop)
+    for rij in rijen:
+        ws.append(rij)
+    vet = Font(name="Arial", bold=True, color="FFFFFF")
+    for cel in ws[1]:
+        cel.font = vet
+        cel.fill = PatternFill("solid", fgColor="15201D")
+        cel.alignment = Alignment(vertical="center", wrap_text=True)
+    for rij in ws.iter_rows(min_row=2):
+        for cel in rij:
+            cel.font = Font(name="Arial", size=10)
+            cel.alignment = Alignment(vertical="top", wrap_text=cel.column in (1, 2, 4))
+        link = rij[9]
+        if link.value:
+            link.hyperlink = link.value
+            link.font = Font(name="Arial", size=10, color="0563C1", underline="single")
+    for kolom, breedte in zip("ABCDEFGHIJ", (42, 70, 30, 34, 16, 14, 16, 14, 8, 48)):
+        ws.column_dimensions[kolom].width = breedte
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = ws.dimensions
+
+    info = wb.create_sheet("Toelichting")
+    vandaag = dt.date.today()
+    regels = [
+        ["Gunningenradar — HVS"],
+        ["Periode", "%s t/m %s" % ((vandaag - dt.timedelta(days=van_dagen)).strftime("%d-%m-%Y"),
+                                    (vandaag - dt.timedelta(days=tot_dagen)).strftime("%d-%m-%Y"))],
+        ["Aangemaakt", dt.datetime.now().strftime("%d-%m-%Y %H:%M")],
+        ["Bron", "TenderNed publicatie-webservice (open data, CC-0): gegunde opdrachten (AGO)"],
+        ["Gegund aan", "uit de publicatie-PDF (eForms deel 6 'Winnaar') of de eForms-XML"],
+        ["Selectie", "relevantiescore op trefwoorden voor W-installaties, advies en gebouwtypes"],
+        ["Aantal gunningen", len(rijen)],
+        ["Met winnaar", sum(1 for p in publicaties if p["winnaars"])],
+    ]
+    for r in regels:
+        info.append(r)
+    info["A1"].font = Font(name="Arial", bold=True, size=12)
+    info.column_dimensions["A"].width = 20
+    info.column_dimensions["B"].width = 90
+    wb.save(pad)
+    return pad
+
+
 # ---------------------------------------------------------------------------
 # Geheugen
 # ---------------------------------------------------------------------------
@@ -839,16 +1094,39 @@ def main():
     p.add_argument("--velden", action="store_true", help="toon veldnamen van de API")
     p.add_argument("--geen-verrijking", action="store_true",
                    help="sla het opzoeken van winnaars over")
+    p.add_argument("--van", type=int, default=None,
+                   help="begin van de periode, in dagen geleden (bijv. 548)")
+    p.add_argument("--tot", type=int, default=0,
+                   help="eind van de periode, in dagen geleden (bijv. 183)")
+    p.add_argument("--xlsx", default="",
+                   help="schrijf een spreadsheet naar dit pad (historie-modus)")
+    p.add_argument("--max-verrijking", type=int, default=MAX_VERRIJKING)
+    p.add_argument("--test-pdf", default="",
+                   help="test de winnaar-herkenning op een lokaal PDF- of tekstbestand")
     argumenten = p.parse_args()
 
     print("\nGunningenradar — %s" % dt.datetime.now().strftime("%d-%m-%Y %H:%M"))
+
+    if argumenten.test_pdf:
+        with open(argumenten.test_pdf, "rb") as f:
+            inhoud = f.read()
+        if inhoud[:4] == b"%PDF":
+            print(json.dumps(uit_pdf(inhoud, ""), ensure_ascii=False, indent=2))
+        else:
+            print(json.dumps(lees_pdf_tekst(inhoud.decode("utf-8"), ""),
+                             ensure_ascii=False, indent=2))
+        return
+
+    van_dagen = argumenten.van if argumenten.van is not None else argumenten.dagen
+    historie = bool(argumenten.xlsx)
 
     if argumenten.demo:
         ruwe = VOORBEELD
         print("  demo-modus: %d voorbeeldgunningen" % len(ruwe))
     else:
-        print("  ophalen van gegunde opdrachten, %d dagen terug..." % argumenten.dagen)
-        ruwe = haal_gunningen(argumenten.dagen, argumenten.velden)
+        print("  ophalen van gegunde opdrachten, van %d tot %d dagen terug..."
+              % (van_dagen, argumenten.tot))
+        ruwe = haal_gunningen(van_dagen, argumenten.tot, argumenten.velden)
 
     publicaties = []
     for rij in ruwe:
@@ -876,13 +1154,27 @@ def main():
                   "(pip install pypdf)")
         opgezocht = 0
         for pub in relevant:
-            if opgezocht >= MAX_VERRIJKING:
-                break
+            if opgezocht >= argumenten.max_verrijking:
+                # boven de limiet: wel bekende gegevens uit de cache gebruiken
+                if pub["id"] in cache:
+                    _pas_toe(pub, cache[pub["id"]])
+                continue
             if verrijk(pub, cache, gebruikersnaam, wachtwoord):
                 opgezocht += 1
                 if opgezocht % 10 == 0:
                     print("  %d gunningen uitgezocht..." % opgezocht)
+                if opgezocht % 50 == 0:
+                    schrijf_json(CACHE, cache)
         schrijf_json(CACHE, cache)
+        if STATS:
+            print("  diagnose: " + ", ".join("%s=%d" % kv for kv in sorted(STATS.items())))
+
+    if historie:
+        pad = schrijf_xlsx(relevant, argumenten.xlsx, van_dagen, argumenten.tot)
+        metnaam = sum(1 for p in relevant if p["winnaars"])
+        print("  uitvoerende partij gevonden bij %d van %d" % (metnaam, len(relevant)))
+        print("  spreadsheet: %s\n" % pad)
+        return
 
     eerder = set(lees_json(GEZIEN, {}).get("ids", []))
     nieuwe = {p["id"] for p in relevant if p["id"] and p["id"] not in eerder}
