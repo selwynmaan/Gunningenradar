@@ -1,0 +1,173 @@
+{
+ "pdf_antwoord": {
+  "status": 200,
+  "content_type": "application/pdf",
+  "url": "https://www.tenderned.nl/papi/tenderned-rs-tns/v2/publicaties/423223/pdf",
+  "begin": "%PDF-1.6\n%����\n1 0 obj\n<<\n/Type /Catalog\n/Version /1.7\n/Pages 2 0 R\n/Metadata 2469 0 R\n/MarkInfo 2470 0 R\n/Lang (nl)\n/ViewerPreferences 2471 0 R\n/OutputIntents [2472 0 R]\n/StructTreeRoot 2474 0 R\n>>\nendobj\n425 0 obj\n<<\n/Length 7569\n/Filter /FlateDecode\n/Length1 11144\n>>\nstream\r\nx��z\u000b|S՚�Z���I�&iڴ��N���%}Ж�\u0010hhi)m)}���$}�@\n���\u0005�1\u0011\u0004\u00059�Gd\u0014\u0011\u000f�q\u0017\u0014+��=�\u001e�x���8z\u001e�t���2z�sF�@v��NJe��ݰ��k}��}뿾��\u000f�\u0011B"
+ },
+ "xml_antwoord": {
+  "status": 403,
+  "content_type": "text/plain",
+  "url": "https://www.tenderned.nl/papi/tenderned-rs-tns/v2/publicaties/423223/public-xml",
+  "begin": ""
+ },
+ "json_detail": {
+  "publicatieId": 423223,
+  "kenmerk": 567802,
+  "aanbestedingNaam": "EA AV-middelen - Stichting Nissewijs",
+  "opdrachtgeverNaam": "Stichting Nissewijs",
+  "numberOfDaysBeforeAanmeldenInschrijven": -1,
+  "opdrachtBeschrijving": "Binnen de scope van de Opdracht vallen onder meer:\n•\tAV-middelen zoals interactieve displays (bijvoorbeeld digitale schoolborden of touchscreens);\n•\tdigitale schermen (zoals narrowcasting of displays);\n•\tbeamers;\n•\tsoundbars;\n•\tconsoles of meubels met geïntegreerde aansturing en display;\n•\taudio- en video opnameapparatuur ten behoeve van AV-installaties;\n•\tvideosystemen voor videoconferencing voor groepen;\n•\tbelichtingsapparatuur;\n•\taccessoires en toebehoren (zoals kabels, adapters, beugels)\n•\tbijbehorende dienstverlening zoals hierboven beschreven.\n\nBinnen de scope van de Opdracht valt optioneel:\n•\tOPS-modules\n•\tNieuwe innovaties op gebied van audiovisuele middelen en apparatuur\n•\tVR/AR-middelen en apparatuur;\n•\tOnderdelen (t.b.v. onderhoud en reparatie)",
+  "publicatieDatum": "2026-04-30T04:08:45.742742",
+  "sluitingsDatum": "2026-03-18T10:00:00",
+  "typePublicatie": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling",
+  "publicatieCode": "EF29",
+  "juridischKaderCode": {
+   "code": "NAW",
+   "omschrijving": "Aanbestedingswet 2012"
+  },
+  "nationaalOfEuropeesCode": {
+   "code": "EU",
+   "omschrijving": "Europees"
+  },
+  "typeOpdrachtCode": {
+   "code": "L",
+   "omschrijving": "Leveringen"
+  },
+  "procedureCode": {
+   "code": "OPE",
+   "omschrijving": "Openbaar"
+  },
+  "cpvCodes": [
+   {
+    "isHoofdOpdracht": true,
+    "code": "32321200-1",
+    "omschrijving": "Audiovisuele uitrusting"
+   },
+   {
+    "isHoofdOpdracht": false,
+    "code": "32321300-2",
+    "omschrijving": "Audiovisuele materialen"
+   }
+  ],
+  "nutsCodes": [
+   {
+    "code": "NL364",
+    "omschrijving": "Zuidoost-Zuid-Holland"
+   }
+  ],
+  "afgerondeAanbesteding": true,
+  "isGeimporteerd": false,
+  "isVroegtijdigBeeindigd": false,
+  "publicatieIDLaatsteRectificatie": 411874,
+  "publicatiePdfId": 14136567,
+  "onlyGunningProcedure": false,
+  "isGegund": true,
+  "digitaalInschrijvenCode": {
+   "code": "TEN",
+   "omschrijving": "TenderNed"
+  },
+  "pbNummerTed": "299195-2026",
+  "trefwoord1": "\"AV\"",
+  "trefwoord2": "\"AV-middelen\"",
+  "trefwoord3": "\"Audiovisueel\"",
+  "trefwoord4": "\"AV devices\"",
+  "trefwoord5": "\"Audiovisuele middelen\"",
+  "referentieNummer": "2025-AV304231",
+  "aankondigingCode": {
+   "code": "AGO",
+   "omschrijving": "Aankondiging gegunde opdracht"
+  },
+  "opdrachtAardCode": {
+   "code": "RAA",
+   "omschrijving": "Raamovereenkomst"
+  },
+  "formType": "result",
+  "links": {
+   "pdf": {
+    "href": "/papi/tenderned-rs-tns/v2/publicaties/423223/pdf",
+    "title": "pdf"
+   },
+   "keepInformed": {
+    "href": "https://www.tenderned.nl/aanbestedende-dienst/aankondigingen/423223?keepInformed=true",
+    "title": "keepInformed"
+   },
+   "addToTenders": {
+    "href": "https://www.tenderned.nl/ondernemersplatform/aankondigingen/423223?addToTenders=true",
+    "title": "addToTenders"
+   },
+   "shareOnLinkedIn": {
+    "href": "https://www.linkedin.com/sharing/share-offsite/?url=https://www.tenderned.nl/aankondigingen/overzicht/423223",
+    "title": "shareOnLinkedIn"
+   }
+  }
+ },
+ "stats": {
+  "pdf http 200": 1139,
+  "pdf zonder winnaar": 794,
+  "xml http 403": 794,
+  "json http 200": 794,
+  "zonder winnaar": 794,
+  "met winnaar": 345
+ },
+ "lijst_velden": [
+  "aanbestedingNaam",
+  "digitaal",
+  "europees",
+  "isEformsWijziging",
+  "isVroegtijdigeBeeindiging",
+  "kenmerk",
+  "link",
+  "opdrachtBeschrijving",
+  "opdrachtgeverNaam",
+  "procedure",
+  "publicatieDatum",
+  "publicatieId",
+  "publicatiecode",
+  "publicatiestatus",
+  "score",
+  "tsenderLink",
+  "tsenderNaam",
+  "typeOpdracht",
+  "typePublicatie"
+ ],
+ "lijst_voorbeeld": {
+  "publicatieId": "423457",
+  "publicatieDatum": "2026-04-30",
+  "typePublicatie": {
+   "code": "AGO",
+   "omschrijving": "Aankondiging gegunde opdracht"
+  },
+  "aanbestedingNaam": "EA Bedrijfscatering (Procedure voor Sociaal en Specifieke Diensten-SAS)",
+  "opdrachtgeverNaam": "NS Groep N.V.",
+  "procedure": {
+   "code": "APM",
+   "omschrijving": "Andere procedure in meerdere fasen"
+  },
+  "typeOpdracht": {
+   "code": "D",
+   "omschrijving": "Diensten"
+  },
+  "tsenderNaam": "Mercell",
+  "tsenderLink": "https://s2c.mercell.com/today/133317",
+  "digitaal": false,
+  "europees": false,
+  "publicatiecode": {
+   "code": "EF30",
+   "omschrijving": "Aankondiging gegunde opdracht - sectorale richtlijn, standaardregeling"
+  },
+  "publicatiestatus": {
+   "code": "PUB",
+   "omschrijving": "Gepubliceerd"
+  },
+  "isVroegtijdigeBeeindiging": false,
+  "opdrachtBeschrijving": "Cateringdiensten",
+  "isEformsWijziging": false,
+  "score": null,
+  "kenmerk": 588048,
+  "link": {
+   "href": "https://www.tenderned.nl/aankondigingen/overzicht/423457",
+   "title": "self"
+  }
+ }
+}
