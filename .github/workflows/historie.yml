@@ -25,9 +25,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 330
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -44,16 +44,47 @@ jobs:
           python tenderned_gunningen.py --van ${{ inputs.van }} --tot ${{ inputs.tot }} \
             --max-verrijking 5000 --xlsx exports/gunningen-historie.xlsx $EXTRA
 
+      # Eerst als download bewaren, zodat het resultaat nooit verloren gaat
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gunningen-historie
+          path: |
+            exports/
+            winnaars-cache.json
+          if-no-files-found: warn
+
+      # Daarna in de repo zetten. Botst dat met de dagelijkse radar,
+      # dan worden beide caches samengevoegd in plaats van te falen.
       - name: Spreadsheet en cache bewaren
+        if: always()
         run: |
           git config user.name "gunningenradar"
           git config user.email "actions@users.noreply.github.com"
+          mkdir -p /tmp/hist
+          cp -r exports /tmp/hist/ 2>/dev/null || true
+          cp winnaars-cache.json /tmp/hist/ 2>/dev/null || true
+          git fetch origin main
+          git reset --hard origin/main
+          mkdir -p exports
+          cp -r /tmp/hist/exports/. exports/ 2>/dev/null || true
+          python - << 'PY'
+          import json, os
+          def lees(p):
+              try:
+                  return json.load(open(p, encoding="utf-8"))
+              except Exception:
+                  return {}
+          ons = lees("/tmp/hist/winnaars-cache.json")
+          hun = lees("winnaars-cache.json")
+          for k, v in ons.items():
+              h = hun.get(k)
+              if not h or (v.get("winnaars") and not h.get("winnaars")) \
+                      or v.get("pogingen", 0) > h.get("pogingen", 0):
+                  hun[k] = v
+          json.dump(hun, open("winnaars-cache.json", "w", encoding="utf-8"),
+                    ensure_ascii=False, indent=1)
+          PY
           git add exports/ winnaars-cache.json
           git commit -m "Historie bijgewerkt $(date +%F)" || echo "Niets nieuws"
-          git pull --rebase || true
           git push
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: gunningen-historie
-          path: exports/
