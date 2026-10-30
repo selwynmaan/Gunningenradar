@@ -1,0 +1,59 @@
+name: Gunningen historie (spreadsheet)
+
+on:
+  workflow_dispatch:
+    inputs:
+      van:
+        description: "Begin periode, dagen geleden (548 = 1,5 jaar)"
+        default: "548"
+      tot:
+        description: "Eind periode, dagen geleden (183 = half jaar)"
+        default: "183"
+      alles:
+        description: "Ook gunningen met lage relevantiescore meenemen (true/false)"
+        default: "false"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gunningenradar-historie
+  cancel-in-progress: false
+
+jobs:
+  historie:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Modules installeren
+        run: pip install requests pypdf openpyxl
+
+      - name: Gunningen ophalen en spreadsheet maken
+        env:
+          TENDERNED_API_USERNAME: ${{ secrets.TENDERNED_API_USERNAME }}
+          TENDERNED_API_PASSWORD: ${{ secrets.TENDERNED_API_PASSWORD }}
+        run: |
+          EXTRA=""
+          if [ "${{ inputs.alles }}" = "true" ]; then EXTRA="--alles"; fi
+          python tenderned_gunningen.py --van ${{ inputs.van }} --tot ${{ inputs.tot }} \
+            --max-verrijking 5000 --xlsx exports/gunningen-historie.xlsx $EXTRA
+
+      - name: Spreadsheet en cache bewaren
+        run: |
+          git config user.name "gunningenradar"
+          git config user.email "actions@users.noreply.github.com"
+          git add exports/ winnaars-cache.json
+          git commit -m "Historie bijgewerkt $(date +%F)" || echo "Niets nieuws"
+          git pull --rebase || true
+          git push
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gunningen-historie
+          path: exports/
