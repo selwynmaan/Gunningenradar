@@ -15273,7 +15273,7 @@
   "omschrijving": "Op de defensielocatie Fort Harssens is een jachthaven gelegen tussen steiger 1 en 2. Deze jachthaven is aangelegd in 1998 en heeft als hoofdgebruikers de KMJC, de havendienst CZSK en de KNRM. De huidige drijvende infrastructuur tussen steiger 1 en 2 is met de aanleg in 1998 gedateerd en de technische levensduur derhalve verstreken. De laatste jaren zijn de kosten voor (regulier) onderhoud aan de (houten)steigers en (stalen)buispalen signiﬁcant gestegen. Kosteneﬃciënt beheer is mede hierdoor niet meer mogelijk. Daarnaast voldoen de elektrotechnische- en werktuigbouwkundige installaties op de steigers niet meer aan de huidige normeringen. Defensie heeft eind 2022 besloten om de drijvende infrastructuur te vervangen.",
   "koper": "Rijksvastgoedbedrijf",
   "titel": "32397 Vervanging drijvende infrastructuur Fort Harssens te Den Helder",
-  "pogingen": 1
+  "pogingen": 2
  },
  "449307": {
   "winnaars": [],
@@ -15282,7 +15282,7 @@
   "omschrijving": "De Opdracht bestaat uit het leveren van de dienst Materieel met bedienend personeel op basis van regie. De opdracht is verdeeld in meerdere percelen. Opdrachtgever wenst per perceel met één Opdrachtnemer een Raamovereenkomst voor Materieel met bedienend personeel op te stellen, die gedurende de looptijd van de op te stellen Raamovereenkomst voldoen aan de minimum voorwaarden voor de uitvoering van de opdracht. zie bestek Identiﬁcatiecode van de",
   "koper": "Diamant-groep",
   "titel": "Materieel met bedienend personeel",
-  "pogingen": 1
+  "pogingen": 2
  },
  "449310": {
   "winnaars": [],
@@ -15291,6 +15291,24 @@
   "omschrijving": "Opdrachtgever wil een Raamovereenkomst sluiten met één Opdrachtnemer, die gedurende de looptijd van de Raamovereenkomst voldoet aan de voorwaarden voor de uitvoering van de Opdracht. Zie bestek Identiﬁcatiecode van de",
   "koper": "WSD",
   "titel": "Websiteonderhoud en Marketingdiensten",
+  "pogingen": 2
+ },
+ "449483": {
+  "winnaars": [],
+  "bron": "",
+  "waarde": "",
+  "omschrijving": "Het gymvervoer betreft het vervoer van leerlingen binnen de gemeente van school naar de gymzaal en weer terug. Zie leidraad",
+  "koper": "Gemeente Eemsdelta",
+  "titel": "Gymvervoer",
+  "pogingen": 1
+ },
+ "449424": {
+  "winnaars": [],
+  "bron": "",
+  "waarde": "",
+  "omschrijving": "Deze opdracht betreft de inhuur van een Senior Contentstrateeg / Lead Contenttransitie. Technische universiteit Eindhoven werkt aan een nieuw webplatform. Niet alleen technisch, maar ook",
+  "koper": "Technische Universiteit Eindhoven",
+  "titel": "Senior Contentstrateeg",
   "pogingen": 1
  }
 }
