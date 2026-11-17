@@ -15273,7 +15273,7 @@
   "omschrijving": "Op de defensielocatie Fort Harssens is een jachthaven gelegen tussen steiger 1 en 2. Deze jachthaven is aangelegd in 1998 en heeft als hoofdgebruikers de KMJC, de havendienst CZSK en de KNRM. De huidige drijvende infrastructuur tussen steiger 1 en 2 is met de aanleg in 1998 gedateerd en de technische levensduur derhalve verstreken. De laatste jaren zijn de kosten voor (regulier) onderhoud aan de (houten)steigers en (stalen)buispalen signiﬁcant gestegen. Kosteneﬃciënt beheer is mede hierdoor niet meer mogelijk. Daarnaast voldoen de elektrotechnische- en werktuigbouwkundige installaties op de steigers niet meer aan de huidige normeringen. Defensie heeft eind 2022 besloten om de drijvende infrastructuur te vervangen.",
   "koper": "Rijksvastgoedbedrijf",
   "titel": "32397 Vervanging drijvende infrastructuur Fort Harssens te Den Helder",
-  "pogingen": 2
+  "pogingen": 3
  },
  "449307": {
   "winnaars": [],
@@ -15282,7 +15282,7 @@
   "omschrijving": "De Opdracht bestaat uit het leveren van de dienst Materieel met bedienend personeel op basis van regie. De opdracht is verdeeld in meerdere percelen. Opdrachtgever wenst per perceel met één Opdrachtnemer een Raamovereenkomst voor Materieel met bedienend personeel op te stellen, die gedurende de looptijd van de op te stellen Raamovereenkomst voldoen aan de minimum voorwaarden voor de uitvoering van de opdracht. zie bestek Identiﬁcatiecode van de",
   "koper": "Diamant-groep",
   "titel": "Materieel met bedienend personeel",
-  "pogingen": 2
+  "pogingen": 3
  },
  "449310": {
   "winnaars": [],
@@ -15291,7 +15291,7 @@
   "omschrijving": "Opdrachtgever wil een Raamovereenkomst sluiten met één Opdrachtnemer, die gedurende de looptijd van de Raamovereenkomst voldoet aan de voorwaarden voor de uitvoering van de Opdracht. Zie bestek Identiﬁcatiecode van de",
   "koper": "WSD",
   "titel": "Websiteonderhoud en Marketingdiensten",
-  "pogingen": 2
+  "pogingen": 3
  },
  "449483": {
   "winnaars": [],
@@ -15300,7 +15300,7 @@
   "omschrijving": "Het gymvervoer betreft het vervoer van leerlingen binnen de gemeente van school naar de gymzaal en weer terug. Zie leidraad",
   "koper": "Gemeente Eemsdelta",
   "titel": "Gymvervoer",
-  "pogingen": 1
+  "pogingen": 2
  },
  "449424": {
   "winnaars": [],
@@ -15309,6 +15309,42 @@
   "omschrijving": "Deze opdracht betreft de inhuur van een Senior Contentstrateeg / Lead Contenttransitie. Technische universiteit Eindhoven werkt aan een nieuw webplatform. Niet alleen technisch, maar ook",
   "koper": "Technische Universiteit Eindhoven",
   "titel": "Senior Contentstrateeg",
+  "pogingen": 2
+ },
+ "449577": {
+  "winnaars": [],
+  "bron": "",
+  "waarde": "",
+  "omschrijving": "De opdracht omvat het leveren van Cateringdienstverlening: de verzorging van bedrijfshoreca op de locatie Stadskantoor en Afvalstoﬀendienst. Het verzorgen van banqueting op de locatie Stadhuis/Bestuurscentrum. De dagelijkse operating van de warme drankautomaten en het leveren van een horecamanager en assistent manager voor locatie WeenerXL. De opdracht omvat bedrijfscatering op de locaties Stadskantoor en afvalstoﬀendienst. Banqueting diensten voor genoemde locaties met name op de locatie Stadhuis/bestuurscentrum. Leveren van cateringmanager en assistent cateringmanager voor locatie WeenerXL. Dagelijkse operating van warme drankenautomaten. Identiﬁcatiecode van de",
+  "koper": "Gemeente 's-Hertogenbosch",
+  "titel": "Cateringdiensten",
+  "pogingen": 1
+ },
+ "449538": {
+  "winnaars": [],
+  "bron": "",
+  "waarde": "",
+  "omschrijving": "De Faculteit Health Medicine and Lifesciences van Universiteit Maastricht wil de huidige spoelmachines en rekken vervangen voor nieuwe spoelmachines met droogfunctie en rekken.",
+  "koper": "Universiteit Maastricht",
+  "titel": "Spoelmachines met droogfunctie (DMU414) III",
+  "pogingen": 1
+ },
+ "449469": {
+  "winnaars": [],
+  "bron": "",
+  "waarde": "",
+  "omschrijving": "Het betreft infrastructuurdiensten op de volgende type locaties: Datacenters (incl. uitwijklocatie), Hoofdkantoor, RWZI's, (hoofd)gemalen, minigemalen (en buﬀers). Dit WAN is een naadloos geïntegreerd systeem dat tevens één geheel vormt met de rest van het WL netwerk.",
+  "koper": "Waterschap Limburg",
+  "titel": "WAN Netwerk infrastructuur",
+  "pogingen": 1
+ },
+ "449627": {
+  "winnaars": [],
+  "bron": "",
+  "waarde": "",
+  "omschrijving": "Op de Belastingdienst datacenter locaties Quintax en Walterboscomplex in Apeldoorn, moet het aardingsnetwerk in enkele gebouwen worden herijkt om tot een hogere beveiligingsklasse te komen. Betreft circa 50.000 m2 bvo m2 (beide complexen, projectscope). Het gaat hierbij om de",
+  "koper": "Rijksvastgoedbedrijf",
+  "titel": "24919 | Herijken aardingsinstallatie Walterboscomplex en Quintax, Belastingdienst te Apeldoorn",
   "pogingen": 1
  }
 }
